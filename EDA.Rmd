@@ -9,15 +9,13 @@ setwd("/Users/alice/ML_Titanic")
 ```
 
 ## Load required package and data
-```{r, eval = FALSE}
+```{r}
 library(dplyr) # data manipulation
-library(RSQLite)
-library(sqldf) # data manipulation
 library(ggplot2) # visualization
 library(ggthemes) # visualization
 library(scales) # visualization
 library(mice) # imputation
-library(randomForest)
+library(randomForest) # imputation
 ```
 
 ```{r}
@@ -35,6 +33,9 @@ dim(train); dim(test)
 full  <- rbind(train, test)
 ```
 
+```{r}
+str(full)
+```
 
 ```{r}
 glimpse(full)
@@ -44,10 +45,35 @@ full$Pclass = as.factor(full$Pclass)
 ```{r}
 # Check missing values
 full$Cabin[which(full$Cabin == "")] = NA
+full$Embarked[which(full$Embarked == "")] = NA
 sapply(full, function(x) sum(is.na(x)))
 ```
 
 ## Data Engineering
+
+### Embarked
+```{r}
+full[which(is.na(full$Embarked)),c("Pclass","Fare","Embarked")]
+```
+
+```{r}
+embark_fare <- full %>%
+  filter(!PassengerId  %in% which(is.na(full$Embarked)))
+```
+
+```{r}
+ggplot(embark_fare, aes(x = Embarked, y = Fare, fill = factor(Pclass))) +
+  geom_boxplot() +
+  geom_hline(aes(yintercept=80), 
+    colour='red', linetype='dashed') +
+  scale_y_continuous()
+```
+
+```{r}
+full$Embarked[which(is.na(full$Embarked))] = "C"
+```
+
+
 
 ### Age (Predictive imputation)
 ```{r}
@@ -59,14 +85,15 @@ hist(full$Age)
 set.seed(531)
 
 # mice imputation
-mice_model <- mice(full[, c("Pclass","Sex","Age","SibSp","Parch","Fare","Embarked")], 
-                        method='cart') 
-mice_output <- complete(mice_model)
+mice_model = mice(full[, c("Pclass","Sex","Age","SibSp","Parch","Fare","Embarked")], 
+                  method='rf') 
+mice_output = complete(mice_model)
 ```
 
 ```{r}
 par(mfrow = c(1,2))
-hist(full$Age, freq = F, col='darkgreen', main = "Age: Original")
-hist(mice_output$Age, freq = F, col='lightgreen', main = "Age: Imputation")
+hist(full$Age, freq = F, col = "darkgreen", main = "Age: Original")
+hist(mice_output$Age, freq = F, col = "lightgreen", main = "Age: Imputation")
+# Pattern match
 ```
 
