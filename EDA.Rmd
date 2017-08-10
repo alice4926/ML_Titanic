@@ -5,47 +5,68 @@ output: pdf_document
 ---
 
 ```{r}
-setwd("/Users/alice/Titanic")
+setwd("/Users/alice/ML_Titanic")
 ```
 
 ## Load required package and data
-```{r}
-library('dplyr') # data manipulation
-library('sqldf') # data manipulation
-library('ggplot2') # visualization
-library('ggthemes') # visualization
-library('scales') # visualization
-library('mice') # imputation
+```{r, eval = FALSE}
+library(dplyr) # data manipulation
+library(RSQLite)
+library(sqldf) # data manipulation
+library(ggplot2) # visualization
+library(ggthemes) # visualization
+library(scales) # visualization
+library(mice) # imputation
+library(randomForest)
 ```
 
 ```{r}
 # Read data
-train = read.csv("data/train.csv", stringsAsFactors = F)
-test = read.csv("data/test.csv", stringsAsFactors = F)
+train = read.csv("data/train.csv")
+test = read.csv("data/test.csv")
 
 train$data = "train"
 test$data = "test"
+test$Survived = NA
+
+dim(train); dim(test)
 
 # Bind the training and testing data together for EDA
-full  <- bind_rows(train, test)
+full  <- rbind(train, test)
+```
+
+
+```{r}
+glimpse(full)
+full$Pclass = as.factor(full$Pclass)
 ```
 
 ```{r}
-dim(train); dim(test)
-```
-
-```{r}
-str(full)
-```
-
-```{r}
+# Check missing values
+full$Cabin[which(full$Cabin == "")] = NA
 sapply(full, function(x) sum(is.na(x)))
+```
 
+## Data Engineering
+
+### Age (Predictive imputation)
+```{r}
+hist(full$Age)
+```
+
+```{r, eval = FALSE}
+# set a random seed
+set.seed(531)
+
+# mice imputation
+mice_model <- mice(full[, c("Pclass","Sex","Age","SibSp","Parch","Fare","Embarked")], 
+                        method='cart') 
+mice_output <- complete(mice_model)
 ```
 
 ```{r}
-full[is.na(full$Fare) == T,]
+par(mfrow = c(1,2))
+hist(full$Age, freq = F, col='darkgreen', main = "Age: Original")
+hist(mice_output$Age, freq = F, col='lightgreen', main = "Age: Imputation")
 ```
-
-
 
